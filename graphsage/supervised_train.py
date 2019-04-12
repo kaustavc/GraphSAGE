@@ -7,12 +7,14 @@ import tensorflow as tf
 import numpy as np
 import sklearn
 from sklearn import metrics
+import datetime
 
 from graphsage.supervised_models import SupervisedGraphsage
 from graphsage.models import SAGEInfo
 from graphsage.minibatch import NodeMinibatchIterator
 from graphsage.neigh_samplers import UniformNeighborSampler
 from graphsage.utils import load_data
+from graphsage.load_mtx import load_mtx_data
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 
@@ -120,11 +122,16 @@ def construct_placeholders(num_classes):
     return placeholders
 
 def train(train_data, test_data=None):
-
-    G = train_data[0]
+    print(datetime.datetime.now(), "Entered train()")
+    adj = train_data[0]
     features = train_data[1]
     id_map = train_data[2]
-    class_map  = train_data[4]
+    context_pairs = train_data[3] if FLAGS.random_context else None
+    class_map = train_data[4]
+    train_idxs = train_data[5]
+    validation_idxs = train_data[6]
+    test_idxs = train_data[7]
+
     if isinstance(list(class_map.values())[0], list):
         num_classes = len(list(class_map.values())[0])
     else:
@@ -134,9 +141,9 @@ def train(train_data, test_data=None):
         # pad with dummy zero vector
         features = np.vstack([features, np.zeros((features.shape[1],))])
 
-    context_pairs = train_data[3] if FLAGS.random_context else None
     placeholders = construct_placeholders(num_classes)
-    minibatch = NodeMinibatchIterator(G, 
+    print(datetime.datetime.now(), "Creating Minibatch")
+    minibatch = NodeMinibatchIterator(adj, train_idxs, validation_idxs, test_idxs,
             id_map,
             placeholders, 
             class_map,
@@ -148,6 +155,7 @@ def train(train_data, test_data=None):
     adj_info = tf.Variable(adj_info_ph, trainable=False, name="adj_info")
 
     if FLAGS.model == 'graphsage_mean':
+        print(datetime.datetime.now(), "Creating graphsage_mean model")
         # Create model
         sampler = UniformNeighborSampler(adj_info)
         if FLAGS.samples_3 != 0:
@@ -169,6 +177,7 @@ def train(train_data, test_data=None):
                                      sigmoid_loss = FLAGS.sigmoid,
                                      identity_dim = FLAGS.identity_dim,
                                      logging=True)
+        print(datetime.datetime.now(), "Model created")
     elif FLAGS.model == 'gcn':
         # Create model
         sampler = UniformNeighborSampler(adj_info)
@@ -259,11 +268,12 @@ def train(train_data, test_data=None):
 
     train_adj_info = tf.assign(adj_info, minibatch.adj)
     val_adj_info = tf.assign(adj_info, minibatch.test_adj)
-    for epoch in range(FLAGS.epochs): 
+    print(datetime.datetime.now(), "Starting Epochs")
+    for epoch in range(FLAGS.epochs):
         minibatch.shuffle() 
 
         iter = 0
-        print('Epoch: %04d' % (epoch + 1))
+        print(datetime.datetime.now(), 'Epoch: %04d' % (epoch + 1))
         epoch_val_costs.append(0)
         while not minibatch.end():
             # Construct feed dictionary
@@ -293,7 +303,7 @@ def train(train_data, test_data=None):
 
             if total_steps % FLAGS.print_every == 0:
                 train_f1_mic, train_f1_mac = calc_f1(labels, outs[-1])
-                print("Iter:", '%04d' % iter, 
+                print(datetime.datetime.now(), "Iter:", '%04d' % iter,
                       "train_loss=", "{:.5f}".format(train_cost),
                       "train_f1_mic=", "{:.5f}".format(train_f1_mic), 
                       "train_f1_mac=", "{:.5f}".format(train_f1_mac), 
@@ -311,10 +321,10 @@ def train(train_data, test_data=None):
         if total_steps > FLAGS.max_total_steps:
                 break
     
-    print("Optimization Finished!")
+    print(datetime.datetime.now(), "Optimization Finished!")
     sess.run(val_adj_info.op)
     val_cost, val_f1_mic, val_f1_mac, duration = incremental_evaluate(sess, model, minibatch, FLAGS.batch_size)
-    print("Full validation stats:",
+    print(datetime.datetime.now(), "Full validation stats:",
                   "loss=", "{:.5f}".format(val_cost),
                   "f1_micro=", "{:.5f}".format(val_f1_mic),
                   "f1_macro=", "{:.5f}".format(val_f1_mac),
@@ -323,17 +333,20 @@ def train(train_data, test_data=None):
         fp.write("loss={:.5f} f1_micro={:.5f} f1_macro={:.5f} time={:.5f}".
                 format(val_cost, val_f1_mic, val_f1_mac, duration))
 
-    print("Writing test set stats to file (don't peak!)")
+    print(datetime.datetime.now(), "Writing test set stats to file (don't peak!)")
     val_cost, val_f1_mic, val_f1_mac, duration = incremental_evaluate(sess, model, minibatch, FLAGS.batch_size, test=True)
     with open(log_dir() + "test_stats.txt", "w") as fp:
         fp.write("loss={:.5f} f1_micro={:.5f} f1_macro={:.5f}".
                 format(val_cost, val_f1_mic, val_f1_mac))
 
+
 def main(argv=None):
-    print("Loading training data..")
-    train_data = load_data(FLAGS.train_prefix)
-    print("Done loading training data..")
+    print(datetime.datetime.now(), "Loading training data..")
+    #train_data = load_data(FLAGS.train_prefix)
+    train_data = load_mtx_data(FLAGS.train_prefix)
+    print(datetime.datetime.now(), "Done loading training data..")
     train(train_data)
+
 
 if __name__ == '__main__':
     tf.app.run()
