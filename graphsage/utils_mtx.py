@@ -9,11 +9,9 @@ def walks_gen(walks_file):
             yield([int(n) for n in line.split()])
 
 
-def load_data(prefix, **kwargs):
-    mtx_file = prefix + "-G.mtx"
-    walks_file = prefix + "-walks.txt"
+def load_data(mtx_file, walks_file):
     with Tracer("Loading adjacency matrix", mtx_file=mtx_file):
-        g = mmread(prefix + "-G.mtx")
+        g = mmread(mtx_file)
 
     # We expect the matrix to be read in to be an adjacency matrix, hence it must be square
     (r, c) = g.get_shape()
@@ -34,7 +32,7 @@ def load_data(prefix, **kwargs):
 
 
 if __name__ == '__main__':
-    g, feats, walks = load_data('../example_mtx/medium')
+    g, feats, idmap, walks, labels = load_data('../example_mtx/medium-G.mtx', '../example_mtx/medium-walks.txt')
     print("Got g with shape: " + str(g.get_shape()))
     print(feats)
     print("Got walks" + str([w for w in walks]))

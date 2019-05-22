@@ -29,6 +29,9 @@ flags.DEFINE_string('model', 'graphsage', 'model names. See README for possible 
 flags.DEFINE_float('learning_rate', 0.00001, 'initial learning rate.')
 flags.DEFINE_string("model_size", "small", "Can be big or small; model specific def'ns")
 flags.DEFINE_string('train_prefix', '', 'name of the object file that stores the training data. must be specified.')
+flags.DEFINE_string('g', '', 'graph file in mtx')
+flags.DEFINE_string('w', '', 'walks file')
+
 
 # left to default values in main experiments 
 flags.DEFINE_integer('epochs', 1, 'number of epochs to train.')
@@ -372,7 +375,7 @@ def train(train_data, test_data=None):
 
 def main(argv=None):
     print("Loading training data..")
-    train_data = load_data(FLAGS.train_prefix, load_walks=True)
+    train_data = load_data(FLAGS.g, FLAGS.w)
     print("Done loading training data..")
     train(train_data)
 
