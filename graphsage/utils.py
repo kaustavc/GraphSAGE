@@ -43,21 +43,39 @@ def load_data(prefix, normalize=True, load_walks=False):
     ## Remove all nodes that do not have val/test annotations
     ## (necessary because of networkx weirdness with the Reddit data)
     broken_count = 0
+    print("Graph G has {:d} nodes".format(len(G.nodes())))
     for node in G.nodes():
         if not 'val' in G.node[node] or not 'test' in G.node[node]:
             G.remove_node(node)
             broken_count += 1
     print("Removed {:d} nodes that lacked proper annotations due to networkx versioning issues".format(broken_count))
+    print("After removing anomalous nodes, graph G has {:d} nodes".format(len(G.nodes())))
 
-    ## Make sure the graph has edge train_removed annotations
-    ## (some datasets might already have this..)
+    train_nodes = 0
+    test_nodes = 0
+    val_nodes = 0
+    for node in G.nodes():
+        if G.node[node]['test']:
+            test_nodes += 1
+        elif G.node[node]['val']:
+            val_nodes += 1
+        else:
+            train_nodes += 1
+    print("Graph G has %d test nodes, %d validation nodes and %d train nodes" % (test_nodes, val_nodes, train_nodes))
+
+    # Make sure the graph has edge train_removed annotations
+    # (some datasets might already have this..)
+    train_removed_edges = 0
     print("Loaded data.. now preprocessing..")
     for edge in G.edges():
-        if (G.node[edge[0]]['val'] or G.node[edge[1]]['val'] or
-            G.node[edge[0]]['test'] or G.node[edge[1]]['test']):
+        if G.node[edge[0]]['val'] or G.node[edge[1]]['val'] or G.node[edge[0]]['test'] or G.node[edge[1]]['test']:
             G[edge[0]][edge[1]]['train_removed'] = True
+            train_removed_edges += 1
         else:
             G[edge[0]][edge[1]]['train_removed'] = False
+
+    print("Graph G has %d edges" % (len(G.edges())))
+    print("%d edges were marked as train_removed" % train_removed_edges)
 
     if normalize and not feats is None:
         from sklearn.preprocessing import StandardScaler
