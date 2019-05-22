@@ -15,7 +15,7 @@ def load_data(mtx_file, walks_file):
         g = pickle.load(fin)
 
     with Tracer("Creating dummy features for nodes"):
-        feats = np.ones((r, 1))
+        feats = np.ones((g.get_shape()[0], 1))
 
     with Tracer("Loading Walks", walks_file=walks_file):
         walks = walks_gen(walks_file)
