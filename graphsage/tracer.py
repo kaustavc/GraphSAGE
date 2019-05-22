@@ -5,9 +5,11 @@ class Tracer:
     def __init__(self, description, **kwargs):
         self.description = description
         self.params = kwargs
+        self.start_time = None
+        self.last_update_time = None
 
     def __enter__(self):
-        self.start_time = datetime.now()
+        self.start_time = self.last_update_time = datetime.now()
         print("[{}] START [{}] params={}".format(self.start_time, self.description, self.params))
         return self
 
@@ -18,8 +20,10 @@ class Tracer:
 
     def update(self, **kwargs):
         now = datetime.now()
-        elapsed_seconds = (now-self.start_time).seconds
-        print("[{}] UPDATE [{}] params={} duration={}s".format(now, self.description, kwargs, elapsed_seconds))
+        total_elapsed = (now-self.start_time).seconds
+        delta_elapsed = (now-self.last_update_time).seconds
+        self.last_update_time = now
+        print("[{}] UPDATE [{}] params={} delta={}s total={}s".format(now, self.description, kwargs, delta_elapsed, total_elapsed))
 
     def duration(self):
         return self.elapsed_seconds

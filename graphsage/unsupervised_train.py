@@ -132,20 +132,22 @@ def construct_placeholders():
     }
     return placeholders
 
+
 def train(train_data, test_data=None):
     G = train_data[0]
     features = train_data[1]
-    id_map = train_data[2]
 
     if not features is None:
         # pad with dummy zero vector
         features = np.vstack([features, np.zeros((features.shape[1],))])
 
-    context_pairs = train_data[3] if FLAGS.random_context else None
+    context_pairs = train_data[2] if FLAGS.random_context else None
     placeholders = construct_placeholders()
     minibatch = EdgeMinibatchIteratorMTX(G, placeholders, context_pairs,
                                          batch_size=FLAGS.batch_size,
                                          max_degree=FLAGS.max_degree)
+    train_data = None  # Allow garbage collection at this point
+
     adj_info_ph = tf.placeholder(tf.int32, shape=minibatch.adj.shape)
     adj_info = tf.Variable(adj_info_ph, trainable=False, name="adj_info")
 

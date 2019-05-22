@@ -363,9 +363,10 @@ class EdgeMinibatchIteratorMTX(object):
             tracer.update(status="Creating deg")
             deg = G.getnnz(0)
 
+            tracer.update(status="Starting to sample neighbors of nodes")
             for n in self.nodes():
-                if n % 1000000 == 0:
-                    tracer.update(status="Sampling neighbors of node {} of {}".format(n, self.N))
+                if n % 10000 == 0:
+                    tracer.update(N=self.N, n=n)
                 neighbors = np.nonzero(G[n].toarray())[1]
                 if len(neighbors) == 0:
                     continue
