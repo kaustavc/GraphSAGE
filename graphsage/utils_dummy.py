@@ -11,7 +11,7 @@ def walks_gen(walks_file):
 
 def load_data(mtx_file, walks_file):
     with Tracer("Creating dummy features for nodes"):
-        feats = np.ones((g.get_shape()[0], 1))
+        feats = np.ones((64000000, 1))
 
     with Tracer("Loading Walks", walks_file=walks_file):
         walks = walks_gen(walks_file)

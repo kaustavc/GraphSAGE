@@ -11,7 +11,7 @@ from graphsage.minibatch import EdgeMinibatchIteratorMTX
 from graphsage.minibatch import EdgeMinibatchIteratorDummyAdj
 
 from graphsage.neigh_samplers import UniformNeighborSampler
-from graphsage.utils_mtx import load_data
+from graphsage.utils_dummy import load_data
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 
