@@ -400,3 +400,60 @@ class EdgeMinibatchIteratorMTX(object):
             self.ended = True
         self.batch_num += 1
         return self.batch_feed_dict(batch_edges)
+
+
+class EdgeMinibatchIteratorDummyAdj(object):
+    """ This minibatch iterator iterates over batches of sampled edges or
+    random pairs of co-occuring edges.
+
+    G -- networkx graph
+    placeholders -- tensorflow placeholders object
+    context_pairs -- if not none, then a list of co-occuring node pairs (from random walks)
+    batch_size -- size of the minibatches
+    max_degree -- maximum size of the downsampled adjacency lists
+    """
+
+    def __init__(self, shape, placeholders, context_pairs, batch_size=100, max_degree=25):
+        self.N = shape[0]
+        self.placeholders = placeholders
+        self.train_edges = self.edges = context_pairs
+        self.batch_size = batch_size
+        self.max_degree = max_degree
+        self.batch_num = 0
+        self.ended = False
+        self.adj, self.deg = self.construct_adj(shape)
+
+    def nodes(self):
+        return range(0, self.N)
+
+    def construct_adj(self, shape):
+        with Tracer("Dummy Minibatch adj construction") as tracer:
+            tracer.update(status="Creating dummy adj")
+            adj = np.random.randint(1, self.N, size=shape, dtype='int32')
+            tracer.update(status="Creating deg")
+            deg = np.full((self.N,), shape[1])
+        return adj, deg
+
+    def end(self):
+        return self.ended
+
+    def batch_feed_dict(self, batch_edges):
+        batch1 = []
+        batch2 = []
+        for node1, node2 in batch_edges:
+            batch1.append(node1)
+            batch2.append(node2)
+
+        feed_dict = dict()
+        feed_dict.update({self.placeholders['batch_size']: len(batch_edges)})
+        feed_dict.update({self.placeholders['batch1']: batch1})
+        feed_dict.update({self.placeholders['batch2']: batch2})
+
+        return feed_dict
+
+    def next_minibatch_feed_dict(self):
+        batch_edges = nextn(self.train_edges, self.batch_size)
+        if len(batch_edges) < self.batch_size:
+            self.ended = True
+        self.batch_num += 1
+        return self.batch_feed_dict(batch_edges)

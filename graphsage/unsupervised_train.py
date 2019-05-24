@@ -8,6 +8,8 @@ import numpy as np
 
 from graphsage.models import SampleAndAggregate, SAGEInfo, Node2VecModel
 from graphsage.minibatch import EdgeMinibatchIteratorMTX
+from graphsage.minibatch import EdgeMinibatchIteratorDummyAdj
+
 from graphsage.neigh_samplers import UniformNeighborSampler
 from graphsage.utils_mtx import load_data
 
@@ -143,9 +145,16 @@ def train(train_data, test_data=None):
 
     context_pairs = train_data[2] if FLAGS.random_context else None
     placeholders = construct_placeholders()
-    minibatch = EdgeMinibatchIteratorMTX(G, placeholders, context_pairs,
+
+    if G is not None:
+        minibatch = EdgeMinibatchIteratorMTX(G, placeholders, context_pairs,
                                          batch_size=FLAGS.batch_size,
                                          max_degree=FLAGS.max_degree)
+    else:
+        minibatch = EdgeMinibatchIteratorDummyAdj((64000000, FLAGS.max_degree), placeholders, context_pairs,
+                                         batch_size=FLAGS.batch_size,
+                                         max_degree=FLAGS.max_degree)
+
     train_data = None  # Allow garbage collection at this point
 
     adj_info_ph = tf.placeholder(tf.int32, shape=minibatch.adj.shape)
@@ -373,13 +382,13 @@ def train(train_data, test_data=None):
     #         print("Walk time: ", walk_time)
     #         print("Train time: ", train_time)
 
-    
 
 def main(argv=None):
     print("Loading training data..")
     train_data = load_data(FLAGS.g, FLAGS.w)
     print("Done loading training data..")
     train(train_data)
+
 
 if __name__ == '__main__':
     tf.app.run()
