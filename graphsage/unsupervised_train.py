@@ -12,6 +12,7 @@ from graphsage.minibatch import EdgeMinibatchIteratorDummyAdj
 
 from graphsage.neigh_samplers import UniformNeighborSampler
 from graphsage.utils_dummy import load_data
+from datetime import datetime
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 
@@ -155,10 +156,13 @@ def train(train_data, test_data=None):
                                          batch_size=FLAGS.batch_size,
                                          max_degree=FLAGS.max_degree)
 
+    print("[{}] Minibatch created".format(datetime.now()))
     train_data = None  # Allow garbage collection at this point
 
     adj_info_ph = tf.placeholder(tf.int32, shape=minibatch.adj.shape)
     adj_info = tf.Variable(adj_info_ph, trainable=False, name="adj_info")
+
+    print("[{}] Starting model creation".format(datetime.now()))
 
     if FLAGS.model == 'graphsage_mean':
         # Create model
@@ -244,6 +248,9 @@ def train(train_data, test_data=None):
     else:
         raise Exception('Error: model name unrecognized.')
 
+    print("[{}] Done".format(datetime.now()))
+
+    print("[{}] Creating TF Session".format(datetime.now()))
     config = tf.ConfigProto(log_device_placement=FLAGS.log_device_placement)
     config.gpu_options.allow_growth = True
     #config.gpu_options.per_process_gpu_memory_fraction = GPU_MEM_FRACTION
@@ -253,10 +260,13 @@ def train(train_data, test_data=None):
     sess = tf.Session(config=config)
     merged = tf.summary.merge_all()
     summary_writer = tf.summary.FileWriter(log_dir(), sess.graph)
-     
+    print("[{}] Done".format(datetime.now()))
+
     # Init variables
+    print("[{}] Initializing global variables".format(datetime.now()))
     sess.run(tf.global_variables_initializer(), feed_dict={adj_info_ph: minibatch.adj})
-    
+    print("[{}] Done".format(datetime.now()))
+
     # Train model
     
     train_shadow_mrr = None
@@ -268,7 +278,8 @@ def train(train_data, test_data=None):
 
     train_adj_info = tf.assign(adj_info, minibatch.adj)
     # val_adj_info = tf.assign(adj_info, minibatch.test_adj)
-    for epoch in range(FLAGS.epochs): 
+    print("[{}] Starting epochs".format(datetime.now()))
+    for epoch in range(FLAGS.epochs):
         # minibatch.shuffle()
 
         iteration = 0
